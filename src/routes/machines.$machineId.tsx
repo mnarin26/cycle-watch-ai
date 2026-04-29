@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
-import { ArrowLeft, Camera, CheckCircle2, Gauge, Sparkles, TimerReset } from "lucide-react";
+import { ArrowLeft, Camera, CheckCircle2, Gauge, ShieldCheck, Sparkles, TimerReset } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -57,6 +57,21 @@ function MachineDetail() {
         <MetricCard label="Son örnek" value={`${machine.lastSampleSecondsAgo} sn`} detail={machine.reflectorDetected ? "Reflektör algılandı" : "Reflektör bekleniyor"} icon={<Camera className="h-5 w-5" />} />
         <MetricCard label="Kalıp tahmini" value={machine.suggestedMold.mold} detail={`%${machine.suggestedMold.confidence} eşleşme`} icon={<Sparkles className="h-5 w-5" />} />
       </section>
+
+      <Card className="rounded-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5" /> Reflektör kopma doğrulaması</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-4">
+          <MetricCard label="Kopma süresi" value={`${machine.reflectorRecovery.lostForMin} dk`} detail="Reflektör görünmedi" />
+          <MetricCard label="İlk kontrol" value={`${machine.reflectorRecovery.validationCycles}/10`} detail={`Normal: ${machine.reflectorRecovery.expectedCycleRange}`} />
+          <MetricCard label="Geri dönüş ort." value={formatSeconds(machine.reflectorRecovery.observedAvgSeconds)} detail={machine.reflectorRecovery.stateLabel} />
+          <MetricCard label="Telafi çevrimi" value={machine.reflectorRecovery.acceptedCycles.toLocaleString("tr-TR")} detail={`Güven: %${machine.reflectorRecovery.confidence}`} />
+          <div className="rounded-md border bg-muted p-3 text-sm text-muted-foreground md:col-span-4">
+            {machine.reflectorRecovery.note}
+          </div>
+        </CardContent>
+      </Card>
 
       <section className="grid gap-4 xl:grid-cols-[1.4fr_0.9fr]">
         <Card className="rounded-lg">
