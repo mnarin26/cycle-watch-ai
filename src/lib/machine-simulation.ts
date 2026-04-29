@@ -152,6 +152,21 @@ function makeTrend(target: number, tick: number, seed: number): CyclePoint[] {
   });
 }
 
+function makeMoldSummary(history: MoldRun[], tick: number): Record<PeriodKey, MoldRun[]> {
+  const multipliers: Record<PeriodKey, number> = { day: 1, week: 5, month: 22, year: 250 };
+
+  return Object.fromEntries(
+    (Object.keys(multipliers) as PeriodKey[]).map((period) => [
+      period,
+      history.map((run, index) => ({
+        ...run,
+        cycles: Math.round(run.cycles * multipliers[period] * (period === "day" ? 0.02 : 0.08) + wave(index + 3, tick, 120)),
+        uptime: Number(Math.max(10, Math.min(98, run.uptime - index * 1.4 + wave(index + 1, tick, 1.2))).toFixed(1)),
+      })),
+    ]),
+  ) as Record<PeriodKey, MoldRun[]>;
+}
+
 export function getSimulatedMachines(tick = 0): Machine[] {
   return baseMachines.map((machine, index) => {
     const trend = makeTrend(machine.targetCycleSeconds, tick, index + 1);
@@ -167,6 +182,8 @@ export function getSimulatedMachines(tick = 0): Machine[] {
       lastSampleSecondsAgo: tick % 2 === 0 ? 0.5 : 1,
       reflectorDetected: machine.status !== "fault" || tick % 4 !== 0,
       cycleTrend: trend,
+      suggestedMold: machine.moldHistory[(tick + index) % machine.moldHistory.length],
+      moldSummary: makeMoldSummary(machine.moldHistory, tick),
       summary: {
         day: { uptime: Number(uptime.toFixed(1)), cycles, stops: machine.stops.length, avgCycle: machine.avgCycleSeconds },
         week: { uptime: Number(Math.max(15, uptime - 2).toFixed(1)), cycles: cycles * 5 + 180, stops: machine.stops.length + 7, avgCycle: machine.avgCycleSeconds + 0.4 },
