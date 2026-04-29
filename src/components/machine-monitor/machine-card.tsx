@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { ArrowRight, Clock, Gauge, TimerReset } from "lucide-react";
+import { ArrowRight, Clock, Gauge, Sparkles, TimerReset } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import type { Machine } from "@/lib/machine-simulation";
@@ -37,6 +37,15 @@ export function MachineCard({ machine }: { machine: Machine }) {
             <div className="text-muted-foreground">Çevrim adedi</div>
             <p className="mt-1 font-bold">{machine.cyclesToday.toLocaleString("tr-TR")}</p>
           </div>
+        </div>
+
+        <div className="rounded-md border bg-muted p-3 text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground"><Sparkles className="h-4 w-4" /> Kalıp önerisi</div>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <p className="font-bold">{machine.suggestedMold.mold}</p>
+            <span className="text-xs font-semibold text-muted-foreground">%{machine.suggestedMold.confidence}</span>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">Son çalışma: {machine.suggestedMold.lastSeen}</p>
         </div>
 
         <ChartContainer
