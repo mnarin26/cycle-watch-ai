@@ -22,15 +22,21 @@ export function MachineCard({ machine }: { machine: Machine }) {
       <CardContent className="space-y-4 p-4 pt-0">
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div className="rounded-md bg-muted p-3">
-            <div className="flex items-center gap-2 text-muted-foreground"><TimerReset className="h-4 w-4" /> Son çevrim</div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <TimerReset className="h-4 w-4" /> Son çevrim
+            </div>
             <p className="mt-1 font-bold">{formatSeconds(machine.cycleSeconds)}</p>
           </div>
           <div className="rounded-md bg-muted p-3">
-            <div className="flex items-center gap-2 text-muted-foreground"><Gauge className="h-4 w-4" /> Çalışma</div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Gauge className="h-4 w-4" /> Çalışma
+            </div>
             <p className="mt-1 font-bold">%{machine.uptime}</p>
           </div>
           <div className="rounded-md bg-muted p-3">
-            <div className="flex items-center gap-2 text-muted-foreground"><Clock className="h-4 w-4" /> Son duruş</div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Clock className="h-4 w-4" /> Son duruş
+            </div>
             <p className="mt-1 font-bold">{machine.lastStopMin} dk</p>
           </div>
           <div className="rounded-md bg-muted p-3">
@@ -40,22 +46,33 @@ export function MachineCard({ machine }: { machine: Machine }) {
         </div>
 
         <div className="rounded-md border bg-muted p-3 text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground"><Sparkles className="h-4 w-4" /> Kalıp önerisi</div>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Sparkles className="h-4 w-4" /> Kalıp önerisi
+          </div>
           <div className="mt-2 flex items-center justify-between gap-3">
             <p className="font-bold">{machine.suggestedMold.mold}</p>
-            <span className="text-xs font-semibold text-muted-foreground">%{machine.suggestedMold.confidence}</span>
+            <span className="text-xs font-semibold text-muted-foreground">
+              %{machine.suggestedMold.confidence}
+            </span>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">Son çalışma: {machine.suggestedMold.lastSeen}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Son çalışma: {machine.suggestedMold.lastSeen}
+          </p>
         </div>
 
         <div className="rounded-md border bg-muted p-3 text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground"><ShieldCheck className="h-4 w-4" /> Görüntü kopma filtresi</div>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <ShieldCheck className="h-4 w-4" /> Görüntü kopma filtresi
+          </div>
           <div className="mt-2 flex items-center justify-between gap-3">
             <p className="font-bold">{machine.reflectorRecovery.stateLabel}</p>
-            <span className="text-xs font-semibold text-muted-foreground">%{machine.reflectorRecovery.confidence}</span>
+            <span className="text-xs font-semibold text-muted-foreground">
+              %{machine.reflectorRecovery.confidence}
+            </span>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            {machine.reflectorRecovery.lostForMin} dk kopma • {machine.reflectorRecovery.acceptedCycles} telafi çevrimi
+            {machine.reflectorRecovery.lostForMin} dk kopma •{" "}
+            {machine.reflectorRecovery.acceptedCycles} telafi çevrimi
           </p>
         </div>
 
@@ -68,7 +85,14 @@ export function MachineCard({ machine }: { machine: Machine }) {
             <XAxis dataKey="label" tickLine={false} axisLine={false} hide />
             <YAxis tickLine={false} axisLine={false} width={30} />
             <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-            <Area type="monotone" dataKey="seconds" stroke="var(--color-seconds)" fill="var(--color-seconds)" fillOpacity={0.18} strokeWidth={2} />
+            <Area
+              type="monotone"
+              dataKey="seconds"
+              stroke="var(--color-seconds)"
+              fill="var(--color-seconds)"
+              fillOpacity={0.18}
+              strokeWidth={2}
+            />
           </AreaChart>
         </ChartContainer>
 
