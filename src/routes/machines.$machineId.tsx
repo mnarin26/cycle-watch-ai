@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { Area, AreaChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
-import { ArrowLeft, Camera, CheckCircle2, Clock, Gauge, TimerReset } from "lucide-react";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
+import { ArrowLeft, Camera, CheckCircle2, Clock, Gauge, Sparkles, TimerReset } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -55,7 +55,7 @@ function MachineDetail() {
         <MetricCard label="Son çevrim" value={formatSeconds(machine.cycleSeconds)} detail={`Hedef: ${formatSeconds(machine.targetCycleSeconds)}`} icon={<TimerReset className="h-5 w-5" />} />
         <MetricCard label="Ortalama çevrim" value={formatSeconds(machine.avgCycleSeconds)} detail="Son vardiya ortalaması" icon={<Gauge className="h-5 w-5" />} />
         <MetricCard label="Son örnek" value={`${machine.lastSampleSecondsAgo} sn`} detail={machine.reflectorDetected ? "Reflektör algılandı" : "Reflektör bekleniyor"} icon={<Camera className="h-5 w-5" />} />
-        <MetricCard label="Son duruş" value={`${machine.lastStopMin} dk`} detail="Otomatik eşiklerle sınıflandı" icon={<Clock className="h-5 w-5" />} />
+        <MetricCard label="Kalıp tahmini" value={machine.suggestedMold.mold} detail={`%${machine.suggestedMold.confidence} eşleşme`} icon={<Sparkles className="h-5 w-5" />} />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.4fr_0.9fr]">
@@ -94,6 +94,44 @@ function MachineDetail() {
                 <p className="mt-2 text-xs text-muted-foreground">Başlangıç: {event.start}</p>
               </div>
             ))}
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+        <Card className="rounded-lg">
+          <CardHeader>
+            <CardTitle>Geçmiş kalıp önerileri</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {machine.moldHistory.map((run) => (
+              <div key={run.mold} className="rounded-md border bg-muted p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold">{run.mold}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Son çalışma: {run.lastSeen} • Ortalama kalıp değişimi {run.changeoverMin} dk</p>
+                  </div>
+                  <span className="text-xs font-semibold text-muted-foreground">%{run.confidence}</span>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-lg">
+          <CardHeader>
+            <CardTitle>Kalıp bazında performans</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={{ cycles: { label: "Çevrim", color: "var(--chart-4)" } }} className="h-72 w-full">
+              <BarChart data={machine.moldSummary.day} margin={{ left: -16, right: 16, top: 10, bottom: 0 }}>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="mold" tickLine={false} axisLine={false} />
+                <YAxis tickLine={false} axisLine={false} width={42} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar dataKey="cycles" fill="var(--color-cycles)" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ChartContainer>
           </CardContent>
         </Card>
       </section>
