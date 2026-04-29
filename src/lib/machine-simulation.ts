@@ -21,9 +21,23 @@ export type MoldRun = {
   confidence: number;
   avgCycleSeconds: number;
   targetCycleSeconds: number;
+  minCycleSeconds: number;
+  maxCycleSeconds: number;
   cycles: number;
   uptime: number;
   changeoverMin: number;
+};
+
+export type ReflectorRecovery = {
+  state: "validated" | "watching" | "rejected";
+  stateLabel: string;
+  lostForMin: number;
+  validationCycles: number;
+  acceptedCycles: number;
+  observedAvgSeconds: number;
+  expectedCycleRange: string;
+  confidence: number;
+  note: string;
 };
 
 export type Machine = {
@@ -46,6 +60,7 @@ export type Machine = {
   stops: StopEvent[];
   moldHistory: MoldRun[];
   suggestedMold: MoldRun;
+  reflectorRecovery: ReflectorRecovery;
   moldSummary: Record<PeriodKey, MoldRun[]>;
   summary: Record<PeriodKey, { uptime: number; cycles: number; stops: number; avgCycle: number }>;
 };
@@ -67,9 +82,9 @@ const baseMachines: Omit<Machine, "cycleSeconds" | "uptime" | "cyclesToday" | "l
       { id: "s2", start: "11:18", durationMin: 6, type: "Planlı duruş", note: "Operatör bekleme" },
     ],
     moldHistory: [
-      { mold: "Kapak A-12", lastSeen: "Bugün", confidence: 96, avgCycleSeconds: 18.4, targetCycleSeconds: 18, cycles: 18420, uptime: 91.2, changeoverMin: 34 },
-      { mold: "Kapak A-10", lastSeen: "3 gün önce", confidence: 82, avgCycleSeconds: 20.1, targetCycleSeconds: 20, cycles: 12680, uptime: 87.4, changeoverMin: 39 },
-      { mold: "Conta A-07", lastSeen: "2 hafta önce", confidence: 68, avgCycleSeconds: 15.7, targetCycleSeconds: 16, cycles: 22140, uptime: 89.1, changeoverMin: 31 },
+      { mold: "Kapak A-12", lastSeen: "Bugün", confidence: 96, avgCycleSeconds: 18.4, targetCycleSeconds: 18, minCycleSeconds: 17.2, maxCycleSeconds: 19.6, cycles: 18420, uptime: 91.2, changeoverMin: 34 },
+      { mold: "Kapak A-10", lastSeen: "3 gün önce", confidence: 82, avgCycleSeconds: 20.1, targetCycleSeconds: 20, minCycleSeconds: 19.1, maxCycleSeconds: 21.4, cycles: 12680, uptime: 87.4, changeoverMin: 39 },
+      { mold: "Conta A-07", lastSeen: "2 hafta önce", confidence: 68, avgCycleSeconds: 15.7, targetCycleSeconds: 16, minCycleSeconds: 14.8, maxCycleSeconds: 16.9, cycles: 22140, uptime: 89.1, changeoverMin: 31 },
     ],
   },
   {
@@ -88,9 +103,9 @@ const baseMachines: Omit<Machine, "cycleSeconds" | "uptime" | "cyclesToday" | "l
       { id: "s4", start: "13:26", durationMin: 12, type: "Planlı duruş", note: "Malzeme hazırlığı" },
     ],
     moldHistory: [
-      { mold: "Gövde B-04", lastSeen: "Bugün", confidence: 93, avgCycleSeconds: 24.8, targetCycleSeconds: 25, cycles: 14210, uptime: 84.5, changeoverMin: 48 },
-      { mold: "Gövde B-02", lastSeen: "6 gün önce", confidence: 76, avgCycleSeconds: 27.3, targetCycleSeconds: 27, cycles: 9870, uptime: 80.2, changeoverMin: 52 },
-      { mold: "Kasa B-11", lastSeen: "1 ay önce", confidence: 64, avgCycleSeconds: 33.6, targetCycleSeconds: 34, cycles: 7420, uptime: 78.9, changeoverMin: 57 },
+      { mold: "Gövde B-04", lastSeen: "Bugün", confidence: 93, avgCycleSeconds: 24.8, targetCycleSeconds: 25, minCycleSeconds: 23.6, maxCycleSeconds: 26.2, cycles: 14210, uptime: 84.5, changeoverMin: 48 },
+      { mold: "Gövde B-02", lastSeen: "6 gün önce", confidence: 76, avgCycleSeconds: 27.3, targetCycleSeconds: 27, minCycleSeconds: 26.1, maxCycleSeconds: 28.7, cycles: 9870, uptime: 80.2, changeoverMin: 52 },
+      { mold: "Kasa B-11", lastSeen: "1 ay önce", confidence: 64, avgCycleSeconds: 33.6, targetCycleSeconds: 34, minCycleSeconds: 31.8, maxCycleSeconds: 35.5, cycles: 7420, uptime: 78.9, changeoverMin: 57 },
     ],
   },
   {
@@ -109,9 +124,9 @@ const baseMachines: Omit<Machine, "cycleSeconds" | "uptime" | "cyclesToday" | "l
       { id: "s6", start: "12:01", durationMin: 18, type: "Planlı duruş", note: "Vardiya geçişi" },
     ],
     moldHistory: [
-      { mold: "Klip C-21", lastSeen: "Bugün", confidence: 88, avgCycleSeconds: 13.6, targetCycleSeconds: 14, cycles: 24180, uptime: 79.6, changeoverMin: 27 },
-      { mold: "Klip C-18", lastSeen: "Dün", confidence: 73, avgCycleSeconds: 12.9, targetCycleSeconds: 13, cycles: 26310, uptime: 82.8, changeoverMin: 25 },
-      { mold: "Mandallı C-03", lastSeen: "12 gün önce", confidence: 59, avgCycleSeconds: 17.8, targetCycleSeconds: 18, cycles: 17650, uptime: 76.4, changeoverMin: 33 },
+      { mold: "Klip C-21", lastSeen: "Bugün", confidence: 88, avgCycleSeconds: 13.6, targetCycleSeconds: 14, minCycleSeconds: 12.9, maxCycleSeconds: 14.5, cycles: 24180, uptime: 79.6, changeoverMin: 27 },
+      { mold: "Klip C-18", lastSeen: "Dün", confidence: 73, avgCycleSeconds: 12.9, targetCycleSeconds: 13, minCycleSeconds: 12.2, maxCycleSeconds: 13.6, cycles: 26310, uptime: 82.8, changeoverMin: 25 },
+      { mold: "Mandallı C-03", lastSeen: "12 gün önce", confidence: 59, avgCycleSeconds: 17.8, targetCycleSeconds: 18, minCycleSeconds: 16.8, maxCycleSeconds: 18.9, cycles: 17650, uptime: 76.4, changeoverMin: 33 },
     ],
   },
   {
@@ -130,9 +145,9 @@ const baseMachines: Omit<Machine, "cycleSeconds" | "uptime" | "cyclesToday" | "l
       { id: "s8", start: "14:04", durationMin: 3, type: "Planlı duruş", note: "Kısa bekleme" },
     ],
     moldHistory: [
-      { mold: "Tapa D-08", lastSeen: "Bugün", confidence: 91, avgCycleSeconds: 31.2, targetCycleSeconds: 30, cycles: 9160, uptime: 86.1, changeoverMin: 22 },
-      { mold: "Tapa D-05", lastSeen: "4 gün önce", confidence: 78, avgCycleSeconds: 29.5, targetCycleSeconds: 29, cycles: 10440, uptime: 88.6, changeoverMin: 24 },
-      { mold: "Kaplin D-14", lastSeen: "3 hafta önce", confidence: 62, avgCycleSeconds: 35.8, targetCycleSeconds: 36, cycles: 7180, uptime: 81.5, changeoverMin: 36 },
+      { mold: "Tapa D-08", lastSeen: "Bugün", confidence: 91, avgCycleSeconds: 31.2, targetCycleSeconds: 30, minCycleSeconds: 29.4, maxCycleSeconds: 32.8, cycles: 9160, uptime: 86.1, changeoverMin: 22 },
+      { mold: "Tapa D-05", lastSeen: "4 gün önce", confidence: 78, avgCycleSeconds: 29.5, targetCycleSeconds: 29, minCycleSeconds: 28.1, maxCycleSeconds: 31.1, cycles: 10440, uptime: 88.6, changeoverMin: 24 },
+      { mold: "Kaplin D-14", lastSeen: "3 hafta önce", confidence: 62, avgCycleSeconds: 35.8, targetCycleSeconds: 36, minCycleSeconds: 33.7, maxCycleSeconds: 37.8, cycles: 7180, uptime: 81.5, changeoverMin: 36 },
     ],
   },
 ];
