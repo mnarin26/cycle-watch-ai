@@ -1,6 +1,24 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
-import { ArrowLeft, Camera, CheckCircle2, Gauge, Sparkles, TimerReset } from "lucide-react";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  ArrowLeft,
+  Camera,
+  CheckCircle2,
+  Gauge,
+  ShieldCheck,
+  Sparkles,
+  TimerReset,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,9 +31,16 @@ export const Route = createFileRoute("/machines/$machineId")({
   head: () => ({
     meta: [
       { title: "Makine Detayı — Çevrim ve Duruş" },
-      { name: "description", content: "Seçilen makine için çevrim trendi, çalışma oranı, duruş ve kalıp değişimi detayları." },
+      {
+        name: "description",
+        content:
+          "Seçilen makine için çevrim trendi, çalışma oranı, duruş ve kalıp değişimi detayları.",
+      },
       { property: "og:title", content: "Makine Detayı — Çevrim ve Duruş" },
-      { property: "og:description", content: "Makine bazında reflektör hareket analizi ve periyot özetleri." },
+      {
+        property: "og:description",
+        content: "Makine bazında reflektör hareket analizi ve periyot özetleri.",
+      },
     ],
   }),
   component: MachineDetail,
@@ -39,7 +64,10 @@ function MachineDetail() {
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <header className="flex flex-col gap-4 rounded-lg border bg-panel p-5 shadow-sm">
-        <Link to="/" className="inline-flex w-fit items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground">
+        <Link
+          to="/"
+          className="inline-flex w-fit items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground"
+        >
           <ArrowLeft className="h-4 w-4" /> Dashboard
         </Link>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -52,11 +80,64 @@ function MachineDetail() {
       </header>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Son çevrim" value={formatSeconds(machine.cycleSeconds)} detail={`Hedef: ${formatSeconds(machine.targetCycleSeconds)}`} icon={<TimerReset className="h-5 w-5" />} />
-        <MetricCard label="Ortalama çevrim" value={formatSeconds(machine.avgCycleSeconds)} detail="Son vardiya ortalaması" icon={<Gauge className="h-5 w-5" />} />
-        <MetricCard label="Son örnek" value={`${machine.lastSampleSecondsAgo} sn`} detail={machine.reflectorDetected ? "Reflektör algılandı" : "Reflektör bekleniyor"} icon={<Camera className="h-5 w-5" />} />
-        <MetricCard label="Kalıp tahmini" value={machine.suggestedMold.mold} detail={`%${machine.suggestedMold.confidence} eşleşme`} icon={<Sparkles className="h-5 w-5" />} />
+        <MetricCard
+          label="Son çevrim"
+          value={formatSeconds(machine.cycleSeconds)}
+          detail={`Hedef: ${formatSeconds(machine.targetCycleSeconds)}`}
+          icon={<TimerReset className="h-5 w-5" />}
+        />
+        <MetricCard
+          label="Ortalama çevrim"
+          value={formatSeconds(machine.avgCycleSeconds)}
+          detail="Son vardiya ortalaması"
+          icon={<Gauge className="h-5 w-5" />}
+        />
+        <MetricCard
+          label="Son örnek"
+          value={`${machine.lastSampleSecondsAgo} sn`}
+          detail={machine.reflectorDetected ? "Reflektör algılandı" : "Reflektör bekleniyor"}
+          icon={<Camera className="h-5 w-5" />}
+        />
+        <MetricCard
+          label="Kalıp tahmini"
+          value={machine.suggestedMold.mold}
+          detail={`%${machine.suggestedMold.confidence} eşleşme`}
+          icon={<Sparkles className="h-5 w-5" />}
+        />
       </section>
+
+      <Card className="rounded-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5" /> Reflektör kopma doğrulaması
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-4">
+          <MetricCard
+            label="Kopma süresi"
+            value={`${machine.reflectorRecovery.lostForMin} dk`}
+            detail="Reflektör görünmedi"
+          />
+          <MetricCard
+            label="İlk kontrol"
+            value={`${machine.reflectorRecovery.validationCycles}/10`}
+            detail={`Normal: ${machine.reflectorRecovery.expectedCycleRange}`}
+          />
+          <MetricCard
+            label="Geri dönüş ort."
+            value={formatSeconds(machine.reflectorRecovery.observedAvgSeconds)}
+            detail={machine.reflectorRecovery.stateLabel}
+          />
+          <MetricCard
+            label="Telafi çevrimi"
+            value={machine.reflectorRecovery.acceptedCycles.toLocaleString("tr-TR")}
+            detail={`Güven: %${machine.reflectorRecovery.confidence}`}
+          />
+          <div className="rounded-md border bg-muted p-3 text-sm text-muted-foreground md:col-span-4">
+            {machine.reflectorRecovery.note}
+          </div>
+        </CardContent>
+      </Card>
 
       <section className="grid gap-4 xl:grid-cols-[1.4fr_0.9fr]">
         <Card className="rounded-lg">
@@ -64,14 +145,35 @@ function MachineDetail() {
             <CardTitle>Çevrim süresi trendi</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={{ seconds: { label: "Çevrim", color: "var(--chart-1)" }, target: { label: "Hedef", color: "var(--chart-2)" } }} className="h-72 w-full">
-              <LineChart data={machine.cycleTrend} margin={{ left: -16, right: 16, top: 10, bottom: 0 }}>
+            <ChartContainer
+              config={{
+                seconds: { label: "Çevrim", color: "var(--chart-1)" },
+                target: { label: "Hedef", color: "var(--chart-2)" },
+              }}
+              className="h-72 w-full"
+            >
+              <LineChart
+                data={machine.cycleTrend}
+                margin={{ left: -16, right: 16, top: 10, bottom: 0 }}
+              >
                 <CartesianGrid vertical={false} />
                 <XAxis dataKey="label" tickLine={false} axisLine={false} />
                 <YAxis tickLine={false} axisLine={false} width={38} />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <Line type="monotone" dataKey="seconds" stroke="var(--color-seconds)" strokeWidth={2.5} dot={false} />
-                <Line type="monotone" dataKey="target" stroke="var(--color-target)" strokeDasharray="5 5" dot={false} />
+                <Line
+                  type="monotone"
+                  dataKey="seconds"
+                  stroke="var(--color-seconds)"
+                  strokeWidth={2.5}
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="target"
+                  stroke="var(--color-target)"
+                  strokeDasharray="5 5"
+                  dot={false}
+                />
               </LineChart>
             </ChartContainer>
           </CardContent>
@@ -89,7 +191,9 @@ function MachineDetail() {
                     <p className="font-semibold">{event.type}</p>
                     <p className="mt-1 text-xs text-muted-foreground">{event.note}</p>
                   </div>
-                  <span className="text-xs font-semibold text-muted-foreground">{event.durationMin} dk</span>
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    {event.durationMin} dk
+                  </span>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">Başlangıç: {event.start}</p>
               </div>
@@ -109,9 +213,13 @@ function MachineDetail() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold">{run.mold}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Son çalışma: {run.lastSeen} • Ortalama kalıp değişimi {run.changeoverMin} dk</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Son çalışma: {run.lastSeen} • Ortalama kalıp değişimi {run.changeoverMin} dk
+                    </p>
                   </div>
-                  <span className="text-xs font-semibold text-muted-foreground">%{run.confidence}</span>
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    %{run.confidence}
+                  </span>
                 </div>
               </div>
             ))}
@@ -123,8 +231,14 @@ function MachineDetail() {
             <CardTitle>Kalıp bazında performans</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={{ cycles: { label: "Çevrim", color: "var(--chart-4)" } }} className="h-72 w-full">
-              <BarChart data={machine.moldSummary.day} margin={{ left: -16, right: 16, top: 10, bottom: 0 }}>
+            <ChartContainer
+              config={{ cycles: { label: "Çevrim", color: "var(--chart-4)" } }}
+              className="h-72 w-full"
+            >
+              <BarChart
+                data={machine.moldSummary.day}
+                margin={{ left: -16, right: 16, top: 10, bottom: 0 }}
+              >
                 <CartesianGrid vertical={false} />
                 <XAxis dataKey="mold" tickLine={false} axisLine={false} />
                 <YAxis tickLine={false} axisLine={false} width={42} />
@@ -144,7 +258,9 @@ function MachineDetail() {
           <Tabs defaultValue="day">
             <TabsList className="grid w-full grid-cols-4 md:w-fit">
               {(Object.keys(periodLabels) as PeriodKey[]).map((period) => (
-                <TabsTrigger key={period} value={period}>{periodLabels[period]}</TabsTrigger>
+                <TabsTrigger key={period} value={period}>
+                  {periodLabels[period]}
+                </TabsTrigger>
               ))}
             </TabsList>
             {(Object.keys(periodLabels) as PeriodKey[]).map((period) => {
@@ -154,19 +270,32 @@ function MachineDetail() {
                 { label: "Duruş", value: Math.max(0, 100 - summary.uptime) },
               ];
               return (
-                <TabsContent key={period} value={period} className="mt-4 grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
+                <TabsContent
+                  key={period}
+                  value={period}
+                  className="mt-4 grid gap-4 lg:grid-cols-[0.8fr_1.2fr]"
+                >
                   <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
                     <MetricCard label="Çalışma" value={`%${summary.uptime}`} />
                     <MetricCard label="Çevrim" value={summary.cycles.toLocaleString("tr-TR")} />
                     <MetricCard label="Ortalama" value={formatSeconds(summary.avgCycle)} />
                   </div>
-                  <ChartContainer config={{ value: { label: "Oran", color: "var(--chart-3)" } }} className="h-56 w-full">
+                  <ChartContainer
+                    config={{ value: { label: "Oran", color: "var(--chart-3)" } }}
+                    className="h-56 w-full"
+                  >
                     <AreaChart data={chartData} margin={{ left: 0, right: 16, top: 16, bottom: 0 }}>
                       <CartesianGrid vertical={false} />
                       <XAxis dataKey="label" tickLine={false} axisLine={false} />
                       <YAxis tickLine={false} axisLine={false} width={34} />
                       <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                      <Area dataKey="value" stroke="var(--color-value)" fill="var(--color-value)" fillOpacity={0.2} strokeWidth={2} />
+                      <Area
+                        dataKey="value"
+                        stroke="var(--color-value)"
+                        fill="var(--color-value)"
+                        fillOpacity={0.2}
+                        strokeWidth={2}
+                      />
                     </AreaChart>
                   </ChartContainer>
                 </TabsContent>
@@ -177,7 +306,8 @@ function MachineDetail() {
       </Card>
 
       <div className="rounded-lg border bg-muted p-4 text-sm text-muted-foreground">
-        <CheckCircle2 className="mr-2 inline h-4 w-4 text-status-running" /> Yeni kalıp çevrim paterni başladığında önceki uzun duruş otomatik olarak kalıp değişimi kabul edilir.
+        <CheckCircle2 className="mr-2 inline h-4 w-4 text-status-running" /> Yeni kalıp çevrim
+        paterni başladığında önceki uzun duruş otomatik olarak kalıp değişimi kabul edilir.
       </div>
     </div>
   );
