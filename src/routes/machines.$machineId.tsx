@@ -9,7 +9,7 @@ import { StatusPill } from "@/components/machine-monitor/status-pill";
 import { useSimulationTick } from "@/components/machine-monitor/use-simulation-tick";
 import { formatSeconds, getMachineById, type PeriodKey } from "@/lib/machine-simulation";
 
-export const Route = createFileRoute("/machines/")({
+export const Route = createFileRoute("/machines/$machineId")({
   head: () => ({
     meta: [
       { title: "Makine Detayı — Çevrim ve Duruş" },
