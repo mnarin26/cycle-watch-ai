@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity, Camera, Factory, RefreshCw } from "lucide-react";
+import { Activity, Camera, Factory, RefreshCw, Sparkles } from "lucide-react";
 import { MachineCard } from "@/components/machine-monitor/machine-card";
 import { MetricCard } from "@/components/machine-monitor/metric-card";
 import { useSimulationTick } from "@/components/machine-monitor/use-simulation-tick";
@@ -24,6 +24,7 @@ function Index() {
   const uptime = machines.reduce((sum, machine) => sum + machine.uptime, 0) / machines.length;
   const cycles = machines.reduce((sum, machine) => sum + machine.cyclesToday, 0);
   const stops = machines.reduce((sum, machine) => sum + machine.stops.length, 0);
+  const suggestions = machines.filter((machine) => machine.suggestedMold.confidence >= 75).length;
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -48,7 +49,7 @@ function Index() {
         <MetricCard label="Tanımlı makine" value={String(machines.length)} detail={`${running} makine çalışıyor`} icon={<Factory className="h-5 w-5" />} />
         <MetricCard label="Ortalama çalışma" value={`%${uptime.toFixed(1)}`} detail="Günlük vardiya görünümü" icon={<Activity className="h-5 w-5" />} />
         <MetricCard label="Toplam çevrim" value={cycles.toLocaleString("tr-TR")} detail="Bugünkü simülasyon adedi" />
-        <MetricCard label="Olay kaydı" value={String(stops)} detail="Duruş ve kalıp değişimi" />
+        <MetricCard label="Kalıp önerisi" value={String(suggestions)} detail={`${stops} olay geçmiş çevrimlerle eşleşti`} icon={<Sparkles className="h-5 w-5" />} />
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
