@@ -1,4 +1,5 @@
 import { Activity, AlertTriangle, Clock, RefreshCcw } from "lucide-react";
+import type { ComponentType } from "react";
 import type { MachineStatus } from "@/lib/machine-simulation";
 import { cn } from "@/lib/utils";
 
@@ -7,7 +8,7 @@ const iconMap = {
   idle: Clock,
   fault: AlertTriangle,
   "mold-change": RefreshCcw,
-} satisfies Record<MachineStatus, React.ComponentType<{ className?: string }>>;
+} satisfies Record<MachineStatus, ComponentType<{ className?: string }>>;
 
 const toneMap = {
   running: "border-status-running/30 bg-status-running/10 text-status-running",
