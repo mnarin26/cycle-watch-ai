@@ -65,7 +65,7 @@ export type Machine = {
   summary: Record<PeriodKey, { uptime: number; cycles: number; stops: number; avgCycle: number }>;
 };
 
-const baseMachines: Omit<Machine, "cycleSeconds" | "uptime" | "cyclesToday" | "lastSampleSecondsAgo" | "reflectorDetected" | "cycleTrend" | "suggestedMold" | "moldSummary" | "summary">[] = [
+const baseMachines: Omit<Machine, "cycleSeconds" | "uptime" | "cyclesToday" | "lastSampleSecondsAgo" | "reflectorDetected" | "cycleTrend" | "suggestedMold" | "reflectorRecovery" | "moldSummary" | "summary">[] = [
   {
     id: "m1",
     name: "Makine 1",
@@ -182,6 +182,41 @@ function makeMoldSummary(history: MoldRun[], tick: number): Record<PeriodKey, Mo
   ) as Record<PeriodKey, MoldRun[]>;
 }
 
+function makeReflectorRecovery(machine: Omit<Machine, "cycleSeconds" | "uptime" | "cyclesToday" | "lastSampleSecondsAgo" | "reflectorDetected" | "cycleTrend" | "suggestedMold" | "reflectorRecovery" | "moldSummary" | "summary">, tick: number, index: number): ReflectorRecovery {
+  const currentMold = machine.moldHistory[0];
+  const lostForMin = [10, 4, 12, 7][index];
+  const expectedCycles = Math.round((lostForMin * 60) / currentMold.avgCycleSeconds);
+  const observedAvgSeconds = Number((currentMold.avgCycleSeconds + wave(index + 8, tick, currentMold.avgCycleSeconds * 0.04)).toFixed(1));
+  const inRange = observedAvgSeconds >= currentMold.minCycleSeconds && observedAvgSeconds <= currentMold.maxCycleSeconds;
+  const stableAfterReturn = index !== 2 || tick % 3 !== 0;
+
+  if (inRange && stableAfterReturn) {
+    return {
+      state: "validated",
+      stateLabel: "Telafi edildi",
+      lostForMin,
+      validationCycles: 10,
+      acceptedCycles: expectedCycles,
+      observedAvgSeconds,
+      expectedCycleRange: `${currentMold.minCycleSeconds.toFixed(1)}–${currentMold.maxCycleSeconds.toFixed(1)} sn`,
+      confidence: 92 - index * 3,
+      note: "Reflektör geri geldikten sonraki ilk 10 çevrim kalıp normaline uygun; aradaki çevrimler üretime eklendi.",
+    };
+  }
+
+  return {
+    state: index === 2 ? "rejected" : "watching",
+    stateLabel: index === 2 ? "Filtrelendi" : "Doğrulanıyor",
+    lostForMin,
+    validationCycles: Math.min(10, 6 + (tick % 5)),
+    acceptedCycles: 0,
+    observedAvgSeconds,
+    expectedCycleRange: `${currentMold.minCycleSeconds.toFixed(1)}–${currentMold.maxCycleSeconds.toFixed(1)} sn`,
+    confidence: index === 2 ? 48 : 71,
+    note: index === 2 ? "Kuş/insan geçişi veya görüntü kesintisi üretim sayımına eklenmedi; çevrim paterni yeterince tutarlı değil." : "İlk 10 çevrim tamamlanana kadar aradaki süre bekleyen kayıt olarak tutuluyor.",
+  };
+}
+
 export function getSimulatedMachines(tick = 0): Machine[] {
   return baseMachines.map((machine, index) => {
     const trend = makeTrend(machine.targetCycleSeconds, tick, index + 1);
@@ -198,6 +233,7 @@ export function getSimulatedMachines(tick = 0): Machine[] {
       reflectorDetected: machine.status !== "fault" || tick % 4 !== 0,
       cycleTrend: trend,
       suggestedMold: machine.moldHistory[(tick + index) % machine.moldHistory.length],
+      reflectorRecovery: makeReflectorRecovery(machine, tick, index),
       moldSummary: makeMoldSummary(machine.moldHistory, tick),
       summary: {
         day: { uptime: Number(uptime.toFixed(1)), cycles, stops: machine.stops.length, avgCycle: machine.avgCycleSeconds },
