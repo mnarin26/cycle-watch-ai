@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { ArrowRight, Clock, Gauge, Sparkles, TimerReset } from "lucide-react";
+import { ArrowRight, Clock, Gauge, ShieldCheck, Sparkles, TimerReset } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import type { Machine } from "@/lib/machine-simulation";
@@ -46,6 +46,17 @@ export function MachineCard({ machine }: { machine: Machine }) {
             <span className="text-xs font-semibold text-muted-foreground">%{machine.suggestedMold.confidence}</span>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">Son çalışma: {machine.suggestedMold.lastSeen}</p>
+        </div>
+
+        <div className="rounded-md border bg-muted p-3 text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground"><ShieldCheck className="h-4 w-4" /> Görüntü kopma filtresi</div>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <p className="font-bold">{machine.reflectorRecovery.stateLabel}</p>
+            <span className="text-xs font-semibold text-muted-foreground">%{machine.reflectorRecovery.confidence}</span>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {machine.reflectorRecovery.lostForMin} dk kopma • {machine.reflectorRecovery.acceptedCycles} telafi çevrimi
+          </p>
         </div>
 
         <ChartContainer
