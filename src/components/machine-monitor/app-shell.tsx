@@ -1,10 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Gauge, PlusSquare, Settings, Factory } from "lucide-react";
+import { Gauge, PlusSquare, Settings, Factory, FlaskConical } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: Gauge },
+  { to: "/test", label: "Filtre Testi", icon: FlaskConical },
   { to: "/setup", label: "Makine Tanıtımı", icon: PlusSquare },
   { to: "/settings", label: "Ayarlar", icon: Settings },
 ] as const;
