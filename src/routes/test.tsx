@@ -1,17 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Bird, Eye, EyeOff, PlayCircle, RotateCcw, User, Zap } from "lucide-react";
+import { ArrowLeft, PlayCircle, RotateCcw, FileCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import {
-  applyEvent,
+  computeReliability,
   makeInitialState,
+  runScript,
   type DecisionTag,
-  type EventType,
   type TestState,
 } from "@/lib/test-simulator";
 
@@ -21,7 +22,7 @@ export const Route = createFileRoute("/test")({
       { title: "Filtre Testi - Reflektör İzleme" },
       {
         name: "description",
-        content: "Kuş, insan, görüntü kopması ve normal çevrim senaryolarını manuel tetikleyerek filtre davranışını test et.",
+        content: "Script tabanlı senaryolarla çevrim, kesinti ve telafi mantığını test et.",
       },
     ],
   }),
@@ -30,34 +31,96 @@ export const Route = createFileRoute("/test")({
 
 const decisionTone: Record<DecisionTag, string> = {
   counted: "border-status-running/30 bg-status-running/10 text-status-running",
+  stop: "border-status-fault/30 bg-status-fault/10 text-status-fault",
   "ignored-noise": "border-muted-foreground/30 bg-muted text-muted-foreground",
   "lost-start": "border-status-fault/30 bg-status-fault/10 text-status-fault",
   recovered: "border-status-mold/30 bg-status-mold/10 text-status-mold",
   compensated: "border-status-running/30 bg-status-running/10 text-status-running",
   rejected: "border-status-fault/30 bg-status-fault/10 text-status-fault",
+  "untrusted-mold": "border-status-fault/30 bg-status-fault/10 text-status-fault",
+};
+
+const SCENARIOS: Record<string, { label: string; script: string }> = {
+  normal: {
+    label: "Senaryo 1: Normal çalışma + kuş geçişi",
+    script: `mold Kapak A-12 4.0 5.5
+cycles 5 4.5-5.0
+noise 0.3
+cycle 5.1
+cycle 4.7
+cycle 4.9`,
+  },
+  shortLoss: {
+    label: "Senaryo 2: Kısa kalıp + kayıp (telafi reddedilmeli)",
+    script: `mold Klip C 4.0 5.5
+cycles 3 4.5-5.0
+lost 180
+cycles 10 4.5-5.0
+compensate`,
+  },
+  longLoss: {
+    label: "Senaryo 3: Uzun kalıp + kayıp (telafi yapılmalı)",
+    script: `mold Tapa D 9.0 10.0
+cycles 3 9.2-9.8
+lost 47
+cycle 9.5
+cycle 9.4
+cycle 9.6
+cycle 9.5
+cycle 9.5
+compensate`,
+  },
+  badPattern: {
+    label: "Senaryo 4: Kayıp sonrası anormal çevrim",
+    script: `mold Tapa D 9.0 10.0
+cycles 2 9.4-9.6
+lost 30
+cycle 14.0
+cycle 8.0
+cycle 9.5
+compensate`,
+  },
+  inCycleNoise: {
+    label: "Senaryo 5: Çevrim içi engel (yutulur)",
+    script: `mold Kapak 4.0 5.5
+cycle 4.8
+# 4.5 sn'lik bir çevrimin ortasında kuş geçer:
+noise 0.4
+cycle 4.5
+cycle 5.0`,
+  },
 };
 
 function TestPage() {
   const [state, setState] = useState<TestState>(() => makeInitialState());
-  const [advanceSec, setAdvanceSec] = useState(5);
+  const [script, setScript] = useState<string>(SCENARIOS.normal.script);
+  const [errors, setErrors] = useState<string[]>([]);
 
-  const trigger = (event: EventType, customAdvance?: number) => {
-    setState((prev) => applyEvent(prev, event, customAdvance ?? advanceSec));
+  const reliability = useMemo(
+    () => computeReliability(state.minCycleSeconds, state.maxCycleSeconds),
+    [state.minCycleSeconds, state.maxCycleSeconds],
+  );
+
+  const run = () => {
+    const fresh = {
+      ...makeInitialState(),
+      moldName: state.moldName,
+      minCycleSeconds: state.minCycleSeconds,
+      maxCycleSeconds: state.maxCycleSeconds,
+    };
+    const result = runScript(fresh, script);
+    setState(result.state);
+    setErrors(result.errors);
   };
 
-  const reset = () => setState(makeInitialState());
-
-  const updateMold = (patch: Partial<Pick<TestState, "moldName" | "minCycleSeconds" | "maxCycleSeconds">>) => {
-    setState((prev) => ({ ...prev, ...patch }));
+  const reset = () => {
+    setState(makeInitialState());
+    setErrors([]);
   };
 
-  const validationProgress = state.pendingValidation.length;
-  const inValidation = validationProgress > 0 || (state.pendingMissedSec > 0 && state.reflectorVisible);
-
-  const avgPending = useMemo(() => {
-    if (state.pendingValidation.length === 0) return 0;
-    return state.pendingValidation.reduce((a, b) => a + b, 0) / state.pendingValidation.length;
-  }, [state.pendingValidation]);
+  const loadScenario = (key: string) => {
+    setScript(SCENARIOS[key].script);
+  };
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -67,11 +130,10 @@ function TestPage() {
             <ArrowLeft className="h-3.5 w-3.5" /> Dashboard'a dön
           </Link>
           <h1 className="mt-2 text-2xl font-bold tracking-normal text-foreground sm:text-3xl">
-            Filtre testi
+            Filtre testi (script tabanlı)
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Olayları sen tetikle, sistemin nasıl tepki verdiğini gör. Rastgele veri yok - tamamen
-            kontrollü.
+            Senaryoyu yaz, çalıştır, sistemin her olaya nasıl tepki verdiğini gör.
           </p>
         </div>
         <Button variant="outline" onClick={reset} className="gap-2">
@@ -80,126 +142,110 @@ function TestPage() {
       </header>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
-        {/* Sol kolon - Kontroller ve durum */}
         <div className="flex flex-col gap-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Kalıp parametreleri</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-3">
-              <div className="space-y-1">
-                <Label htmlFor="moldName" className="text-xs">Kalıp adı</Label>
-                <Input
-                  id="moldName"
-                  value={state.moldName}
-                  onChange={(e) => updateMold({ moldName: e.target.value })}
-                />
+            <CardContent className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="space-y-1">
+                  <Label htmlFor="moldName" className="text-xs">Kalıp adı</Label>
+                  <Input
+                    id="moldName"
+                    value={state.moldName}
+                    onChange={(e) => setState((s) => ({ ...s, moldName: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="min" className="text-xs">Min (sn)</Label>
+                  <Input
+                    id="min"
+                    type="number"
+                    step="0.1"
+                    value={state.minCycleSeconds}
+                    onChange={(e) => setState((s) => ({ ...s, minCycleSeconds: Number(e.target.value) }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="max" className="text-xs">Max (sn)</Label>
+                  <Input
+                    id="max"
+                    type="number"
+                    step="0.1"
+                    value={state.maxCycleSeconds}
+                    onChange={(e) => setState((s) => ({ ...s, maxCycleSeconds: Number(e.target.value) }))}
+                  />
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="min" className="text-xs">Min çevrim (sn)</Label>
-                <Input
-                  id="min"
-                  type="number"
-                  step="0.1"
-                  value={state.minCycleSeconds}
-                  onChange={(e) => updateMold({ minCycleSeconds: Number(e.target.value) })}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="max" className="text-xs">Max çevrim (sn)</Label>
-                <Input
-                  id="max"
-                  type="number"
-                  step="0.1"
-                  value={state.maxCycleSeconds}
-                  onChange={(e) => updateMold({ maxCycleSeconds: Number(e.target.value) })}
-                />
+
+              <div className="rounded-md border bg-card p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground">Kalıp güvenilirliği</span>
+                  <Badge
+                    variant="outline"
+                    className={
+                      reliability.score >= 75
+                        ? "border-status-running/30 bg-status-running/10 text-status-running"
+                        : reliability.score >= 50
+                          ? "border-status-mold/30 bg-status-mold/10 text-status-mold"
+                          : "border-status-fault/30 bg-status-fault/10 text-status-fault"
+                    }
+                  >
+                    {reliability.label} · %{reliability.score}
+                  </Badge>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">{reliability.reason}</p>
+                <p className="mt-1 text-xs">
+                  <span className="text-muted-foreground">Telafi için izin verilen kayıp döngü: </span>
+                  <span className="font-semibold text-foreground">
+                    {reliability.canCompensate ? `${reliability.allowedMissedCycles} çevrim` : "telafi devre dışı"}
+                  </span>
+                </p>
               </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Olay tetikle</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <FileCode className="h-4 w-4" /> Senaryo scripti
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-1">
-                <Label htmlFor="advance" className="text-xs">
-                  Bu olaydan önce geçecek süre (sn)
-                </Label>
-                <Input
-                  id="advance"
-                  type="number"
-                  step="0.1"
-                  value={advanceSec}
-                  onChange={(e) => setAdvanceSec(Number(e.target.value))}
-                />
+            <CardContent className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(SCENARIOS).map(([key, s]) => (
+                  <Button key={key} size="sm" variant="secondary" onClick={() => loadScenario(key)}>
+                    {s.label}
+                  </Button>
+                ))}
+              </div>
+              <Textarea
+                value={script}
+                onChange={(e) => setScript(e.target.value)}
+                rows={10}
+                className="font-mono text-xs"
+              />
+              <div className="flex items-center gap-2">
+                <Button onClick={run} className="gap-2">
+                  <PlayCircle className="h-4 w-4" /> Çalıştır
+                </Button>
                 <p className="text-xs text-muted-foreground">
-                  Örn: normal çevrim için 4-5.5 sn, kopma sonrası dön mek için 600 sn (10 dk).
+                  Komutlar: <code>cycle 5</code>, <code>cycles 10 4.8-5.2</code>, <code>noise 0.3</code>,{" "}
+                  <code>lost 30</code>, <code>compensate</code>, <code>wait 5</code>, <code>mold ad min max</code>
                 </p>
               </div>
-
-              <div className="grid gap-2 sm:grid-cols-2">
-                <Button onClick={() => trigger("cycle")} className="gap-2 justify-start">
-                  <PlayCircle className="h-4 w-4" /> Normal çevrim
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => trigger("bird", 0.3)}
-                  className="gap-2 justify-start"
-                >
-                  <Bird className="h-4 w-4" /> Kuş geçişi (0.3 sn)
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => trigger("person", 1.5)}
-                  className="gap-2 justify-start"
-                >
-                  <User className="h-4 w-4" /> İnsan geçişi (1.5 sn)
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => trigger("cycle", 2)}
-                  className="gap-2 justify-start"
-                >
-                  <Zap className="h-4 w-4" /> Hızlı titreşim (2 sn)
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => trigger("lost")}
-                  className="gap-2 justify-start"
-                >
-                  <EyeOff className="h-4 w-4" /> Reflektör koptu
-                </Button>
-                <Button
-                  variant="default"
-                  onClick={() => trigger("recovered")}
-                  className="gap-2 justify-start"
-                >
-                  <Eye className="h-4 w-4" /> Reflektör geri geldi
-                </Button>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <p className="font-semibold text-foreground">Hazır senaryo:</p>
-                <p>
-                  1) Birkaç kez "Normal çevrim" (5 sn) → sayılır
-                  <br />
-                  2) "Kuş" / "İnsan" → sayılmaz, duruş açmaz
-                  <br />
-                  3) "Reflektör koptu" → sonraki olaydan önce 600 sn yaz → "Reflektör geri geldi"
-                  <br />
-                  4) Üst üste 10 normal çevrim (5 sn) → telafi yapılır
-                </p>
-              </div>
+              {errors.length > 0 && (
+                <div className="rounded-md border border-status-fault/30 bg-status-fault/10 p-2 text-xs text-status-fault">
+                  {errors.map((e, i) => <div key={i}>{e}</div>)}
+                </div>
+              )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Anlık durum</CardTitle>
+              <CardTitle className="text-base">Sonuç</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3 sm:grid-cols-2">
               <Stat label="Simülasyon zamanı" value={`${state.nowSec.toFixed(1)} sn`} />
@@ -210,61 +256,33 @@ function TestPage() {
               />
               <Stat label="Sayılan çevrim" value={String(state.countedCycles)} tone="success" />
               <Stat label="Telafi edilen" value={`+${state.compensatedCycles}`} tone="success" />
-              <Stat label="Filtrelenen gürültü" value={String(state.rejectedNoiseCount)} />
-              <Stat
-                label="Doğrulama"
-                value={inValidation ? `${validationProgress}/10` : "–"}
-                tone={inValidation ? "warning" : "neutral"}
-              />
-              {state.pendingMissedSec > 0 && (
-                <Stat
-                  label="Bekleyen kayıp süre"
-                  value={`${state.pendingMissedSec.toFixed(0)} sn`}
-                  tone="warning"
-                />
-              )}
-              {state.pendingValidation.length > 0 && (
-                <Stat
-                  label="Doğrulama ortalaması"
-                  value={`${avgPending.toFixed(2)} sn`}
-                  tone={
-                    avgPending >= state.minCycleSeconds && avgPending <= state.maxCycleSeconds
-                      ? "success"
-                      : "warning"
-                  }
-                />
+              <Stat label="Duruş sayısı" value={String(state.stopCount)} tone="danger" />
+              <Stat label="Yutulan kesinti" value={String(state.ignoredNoiseCount)} />
+              {state.lostDurationSec > 0 && (
+                <Stat label="Bekleyen kayıp" value={`${state.lostDurationSec.toFixed(1)} sn`} tone="warning" />
               )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Sağ kolon - Olay logu */}
         <Card className="lg:sticky lg:top-4 lg:self-start">
           <CardHeader>
             <CardTitle className="text-base">Olay günlüğü (en yeni üstte)</CardTitle>
           </CardHeader>
-          <CardContent className="max-h-[70vh] overflow-y-auto">
+          <CardContent className="max-h-[80vh] overflow-y-auto">
             {state.log.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Henüz olay yok. Sol taraftan bir buton tıkla.
+                Henüz çalıştırılmadı. Sol taraftan bir senaryo seç ve "Çalıştır"a bas.
               </p>
             ) : (
               <ul className="space-y-2">
                 {state.log.map((entry) => (
-                  <li
-                    key={entry.id}
-                    className="rounded-md border bg-card p-3 text-sm"
-                  >
+                  <li key={entry.id} className="rounded-md border bg-card p-3 text-sm">
                     <div className="flex items-center justify-between gap-2">
-                      <Badge
-                        variant="outline"
-                        className={decisionTone[entry.decision]}
-                      >
+                      <Badge variant="outline" className={decisionTone[entry.decision]}>
                         {entry.decisionLabel}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        t = {entry.timeSec} sn
-                      </span>
+                      <span className="text-xs text-muted-foreground">t = {entry.timeSec} sn</span>
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">{entry.detail}</p>
                   </li>
@@ -274,26 +292,26 @@ function TestPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Separator />
+      <div className="rounded-lg border bg-panel p-5 text-sm text-muted-foreground">
+        <h2 className="mb-2 text-base font-semibold text-foreground">Mantık özeti</h2>
+        <ul className="list-disc space-y-1 pl-5">
+          <li><b>Frame-to-frame ölçüm:</b> Hareket başı–biti arasındaki süre = çevrim. Aralıkta ise normal, dışında ise duruş.</li>
+          <li><b>Çevrim içi kesinti:</b> Kuş/insan gibi kısa engeller çevrim süresinin içinde yutulur — ayrı duruş açılmaz.</li>
+          <li><b>Uzun kayıp:</b> <code>kayıp süresi + sonraki N çevrim toplamı</code> ∈ <code>[(missed+N)×min, (missed+N)×max]</code> ise telafi yapılır.</li>
+          <li><b>Güvenilirlik:</b> Min-Max yayılımı dar ve ortalama uzunsa skor yüksek → daha çok kayıp döngü telafi edilebilir. Düşükse telafi devre dışı.</li>
+        </ul>
+      </div>
     </div>
   );
 }
 
-function Stat({
-  label,
-  value,
-  tone = "neutral",
-}: {
-  label: string;
-  value: string;
-  tone?: "success" | "warning" | "danger" | "neutral";
-}) {
+function Stat({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "success" | "warning" | "danger" | "neutral" }) {
   const toneCls =
-    tone === "success"
-      ? "text-status-running"
-      : tone === "warning"
-        ? "text-status-mold"
-        : tone === "danger"
-          ? "text-status-fault"
+    tone === "success" ? "text-status-running"
+      : tone === "warning" ? "text-status-mold"
+        : tone === "danger" ? "text-status-fault"
           : "text-foreground";
   return (
     <div className="rounded-md border bg-card p-3">
