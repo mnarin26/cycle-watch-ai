@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TestRouteImport } from './routes/test'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MachinesMachineIdRouteImport } from './routes/machines.$machineId'
 
+const TestRoute = TestRouteImport.update({
+  id: '/test',
+  path: '/test',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SetupRoute = SetupRouteImport.update({
   id: '/setup',
   path: '/setup',
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
+  '/test': typeof TestRoute
   '/machines/$machineId': typeof MachinesMachineIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
+  '/test': typeof TestRoute
   '/machines/$machineId': typeof MachinesMachineIdRoute
 }
 export interface FileRoutesById {
@@ -52,25 +60,40 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
+  '/test': typeof TestRoute
   '/machines/$machineId': typeof MachinesMachineIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/settings' | '/setup' | '/machines/$machineId'
+  fullPaths: '/' | '/settings' | '/setup' | '/test' | '/machines/$machineId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/settings' | '/setup' | '/machines/$machineId'
-  id: '__root__' | '/' | '/settings' | '/setup' | '/machines/$machineId'
+  to: '/' | '/settings' | '/setup' | '/test' | '/machines/$machineId'
+  id:
+    | '__root__'
+    | '/'
+    | '/settings'
+    | '/setup'
+    | '/test'
+    | '/machines/$machineId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SettingsRoute: typeof SettingsRoute
   SetupRoute: typeof SetupRoute
+  TestRoute: typeof TestRoute
   MachinesMachineIdRoute: typeof MachinesMachineIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/test': {
+      id: '/test'
+      path: '/test'
+      fullPath: '/test'
+      preLoaderRoute: typeof TestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/setup': {
       id: '/setup'
       path: '/setup'
@@ -106,6 +129,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SettingsRoute: SettingsRoute,
   SetupRoute: SetupRoute,
+  TestRoute: TestRoute,
   MachinesMachineIdRoute: MachinesMachineIdRoute,
 }
 export const routeTree = rootRouteImport
