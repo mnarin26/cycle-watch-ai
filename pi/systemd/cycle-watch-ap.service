@@ -1,0 +1,15 @@
+[Unit]
+Description=Cycle Watch — WiFi AP (hostapd + dnsmasq), sürekli
+Documentation=file:///home/pi/cycle-watch-ai/pi/ap-mode/README-TR.md
+After=network-online.target NetworkManager.service
+Wants=network-online.target
+Before=cycle-watch-analysis.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/home/pi/cycle-watch-ai/pi/ap-mode/enable-ap-hostapd.sh --yes
+User=root
+
+[Install]
+WantedBy=multi-user.target

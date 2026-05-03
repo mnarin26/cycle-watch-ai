@@ -1,0 +1,20 @@
+# Wi‑Fi yüzünden: yalnızca analiz/admin portları listelenir (aşağıda).
+# wlan0 dışındaki yüzler (Ethernet enx..., tailscale0, vb.) ICMPlerden sonra kabul —
+# Böylece Raspberry Pi "predictive" ethernet adı eth0 yerine enx... olsa bile kablo SSH/panel çalışır.
+
+table inet cyclewatch-fw {
+    chain input {
+        type filter hook input priority filter; policy drop;
+        ct state established,related accept
+        iifname lo accept
+
+        iifname wlan0 udp dport { 53, 67 } accept
+        iifname wlan0 tcp dport 5173 accept
+        iifname wlan0 tcp dport 5274 accept
+
+        icmp type echo-request limit rate 10/second burst 5 packets accept
+        icmpv6 type echo-request limit rate 10/second burst 5 packets accept
+
+        meta iifname != "wlan0" accept
+    }
+}

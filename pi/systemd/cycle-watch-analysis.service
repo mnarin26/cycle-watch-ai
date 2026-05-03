@@ -1,0 +1,19 @@
+[Unit]
+Description=Cycle Watch — analiz arayüzü (Vite :5173, tüm arayüzler)
+After=network-online.target cycle-watch-ap.service
+Wants=cycle-watch-ap.service
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/cycle-watch-ai
+Environment=HOME=/home/pi
+Environment=NODE_ENV=development
+Environment=PATH=/home/pi/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/bin/bash -lc 'cd /home/pi/cycle-watch-ai && exec npm run dev'
+Restart=on-failure
+RestartSec=8
+
+[Install]
+WantedBy=multi-user.target

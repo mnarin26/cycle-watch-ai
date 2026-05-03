@@ -1,0 +1,24 @@
+[Unit]
+Description=Cycle Watch — yönetici paneli (yalnızca Ethernet :5274)
+After=network-online.target cycle-watch-analysis.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/cycle-watch-ai
+Environment=HOME=/home/pi
+Environment=NODE_ENV=development
+Environment=PATH=/home/pi/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=ADMIN_BIND_ADDRESS=0.0.0.0
+Environment=ADMIN_PORT=5274
+Environment=CW_AP_SSID=pi-wifi
+Environment=CW_AP_PASSWORD=123456789
+Environment=CW_ANALYSIS_PORT=5173
+ExecStart=/bin/bash -lc 'cd /home/pi/cycle-watch-ai && exec npm run dev:admin'
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

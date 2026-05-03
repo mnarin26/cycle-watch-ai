@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Gauge, PlusSquare, Settings, Factory, FlaskConical } from "lucide-react";
+import { Gauge, PlusSquare, Settings, Factory, FlaskConical, Wifi } from "lucide-react";
 import type { ReactNode } from "react";
+import { useNetworkTestMode, NETWORK_TEST_MODE_LABELS } from "@/lib/network-test-mode";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -12,6 +13,8 @@ const navItems = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const currentPath = useRouterState({ select: (state) => state.location.pathname });
+  const [networkTestMode] = useNetworkTestMode();
+  const modeLabel = NETWORK_TEST_MODE_LABELS[networkTestMode].short;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -22,7 +25,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <div className="hidden lg:block">
             <p className="text-sm font-bold">Reflektör İzleme</p>
-            <p className="text-xs text-muted-foreground">RPi demo arayüzü</p>
+            <p className="mt-0.5 inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <Wifi className="h-3 w-3" aria-hidden />
+              Test: {modeLabel}
+            </p>
           </div>
         </div>
         <nav className="grid h-16 grid-cols-3 px-2 md:h-auto md:grid-cols-1 md:gap-2 md:px-3">
@@ -44,7 +50,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </nav>
       </aside>
-      <main className="pb-20 md:pb-0 md:pl-20 lg:pl-64">{children}</main>
+      <main className="pb-20 md:pb-0 md:pl-20 lg:pl-64">
+        <div className="flex items-center justify-center gap-1.5 border-b border-border bg-muted/30 px-3 py-1.5 text-[10px] font-medium text-muted-foreground md:hidden">
+          <Wifi className="h-3 w-3 shrink-0" aria-hidden />
+          Test ağı: {modeLabel}
+        </div>
+        {children}
+      </main>
     </div>
   );
 }
